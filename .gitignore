@@ -1,0 +1,9 @@
+﻿node_modules
+.next
+out
+.env*
+.vercel
+*.log
+test.mp3
+body.json
+next-env.d.ts
