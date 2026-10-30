@@ -24,7 +24,16 @@ function buildConfig(spec: AgentSpec) {
     model_id: process.env.AGENT_TTS_MODEL || (lang === "en" ? "eleven_flash_v2" : "eleven_flash_v2_5"),
   };
   if (process.env.ELEVENLABS_VOICE_ID) tts.voice_id = process.env.ELEVENLABS_VOICE_ID;
-  return { agent: { first_message: spec.first_message, language: lang, prompt }, tts };
+
+  const config: Record<string, unknown> = {
+    agent: { first_message: spec.first_message, language: lang, prompt },
+    tts,
+    // Barge-in ke liye "interruption" event client ko milna zaroori hai, taaki agent ki audio turant ruk jaye
+    conversation: { client_events: ["audio", "interruption", "user_transcript", "agent_response", "agent_response_correction", "ping"] },
+  };
+  // Optional: AGENT_TURN_EAGERNESS=eager|normal|patient (eager = jaldi jawab dega). Set na ho to default chalega.
+  if (process.env.AGENT_TURN_EAGERNESS) config.turn = { turn_eagerness: process.env.AGENT_TURN_EAGERNESS };
+  return config;
 }
 
 // ELEVENLABS_AGENT_ID set hai to wahi agent update hota hai (fixed agent), warna naya banta hai.

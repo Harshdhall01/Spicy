@@ -1,8 +1,8 @@
-export type St = { intent?: "book" | "cancel" | "cb"; svc?: string; date?: string; time?: number; pref?: string; name?: string; phone?: string; noPhone?: boolean; stage?: string; offer?: string; resched?: boolean };
-export type Booking = { id: string; name: string; svc: string; date: string; time: number; phone?: string; biz: string };
+export type St = { intent?: "book" | "cancel" | "cb"; svc?: string; date?: string; time?: number; pref?: string; name?: string; phone?: string; noPhone?: boolean; stage?: string; offer?: string; resched?: boolean; dishes?: [string, number, number][]; dishDone?: boolean };
+export type Booking = { id: string; name: string; svc: string; date: string; time: number; phone?: string; biz: string; dishes?: string };
 export const bookings: Booking[] = [];
 type Svc = [string, RegExp, string, string];
-type Dom = { biz: string; noun: string; open: number; close: number; closed: number[]; lunch?: number; svcAsk: string; services: Svc[]; hrs: string; loc: string; topics: string; price: string; faq: [RegExp, string, string?][]; chips: string[] };
+type Dom = { biz: string; noun: string; open: number; close: number; closed: number[]; lunch?: number; svcAsk: string; services: Svc[]; menu?: [string, RegExp, number][]; hrs: string; loc: string; topics: string; price: string; faq: [RegExp, string, string?][]; chips: string[] };
 
 const D: Record<string, Dom> = {
   clinic: { biz: "Smile Care Dental Clinic", noun: "appointment", open: 10, close: 19, closed: [0], lunch: 13,
@@ -60,11 +60,33 @@ const D: Record<string, Dom> = {
     price: "2 BHK lagbhag 45 lakh se aur 3 BHK lagbhag 70 lakh se shuru hote hain", services: [],
     faq: [[/bhk|flat|plot|rent|villa/, "Hamare paas 2 aur 3 BHK flats, plots aur rentals hain. Budget aur area bata dijiye, main site visit book kar deti hoon."], [/loan|emi|bank/, "Loan ke liye bank partners se connect karwa dete hain. EMI ka exact hisaab team karegi."], [/rera/, "Hamare saare listed projects RERA registered hain."], [/possession|ready to move|under construction/, "Ready to move aur under construction dono options hain."]],
     chips: ["Kal 4 baje site visit book karna hai", "3 BHK ka budget kitna hoga?", "Kya projects RERA registered hain?"] },
-  food: { biz: "Spice Route Restaurant", noun: "table", open: 12, close: 23, closed: [], svcAsk: "",
-    hrs: "roz dopahar 12 se raat 11 baje", loc: "City Centre, Faridabad", topics: "menu, timings aur table booking",
+  food: { biz: "Zaika Darbar Restaurant", noun: "table", open: 12, close: 23, closed: [], svcAsk: "",
+    hrs: "roz dopahar 12 se raat 11 baje", loc: "City Centre, Faridabad", topics: "menu, dishes, timings aur table booking",
     price: "Do logon ka kharcha lagbhag 800 se 1000 rupaye aata hai", services: [],
-    faq: [[/veg|jain|vegan/, "Veg, non veg aur Jain options sab available hain."], [/delivery|takeaway|parcel/, "Delivery aur takeaway dono hain."], [/parking|valet/, "Restaurant ke saamne parking hai, weekend par valet bhi milta hai."], [/birthday|anniversary|cake/, "Birthday ya anniversary ke liye hum table decorate kar dete hain."]],
-    chips: ["Aaj raat 8 baje table book karna hai", "Kya Jain khana milta hai?", "Delivery hoti hai?"] },
+    menu: [
+      ["Margherita Pizza", /margh?erita|(?<!tikka )\bpizza\b/, 249],
+      ["Paneer Tikka Pizza", /tikka/, 329],
+      ["Veg Burger", /veg burger|(?<!chicken )\bburger\b/, 149],
+      ["Chicken Burger", /chicken/, 199],
+      ["Dal Makhani", /makhani|dal makhani/, 219],
+      ["Dal Tadka", /tadka|(?<!makhani )\bdal\b(?! makhani)/, 179],
+      ["Paneer Butter Masala", /butter masala|paneer butter|\bpbm\b/, 289],
+      ["Kadhai Paneer", /kadhai|kadai/, 279],
+      ["Aloo Gobhi", /aloo|gobhi|gobi/, 189],
+      ["Butter Naan", /naan|\broti\b/, 49],
+      ["Jeera Rice", /jeera|\brice\b/, 129],
+      ["Gulab Jamun", /gulab|jamun|dessert|meetha/, 99],
+    ],
+    faq: [
+      [/menu|dishes|kya kya (milta|hai)|khane (mein|me)/, "Hamare menu mein pizza, burger, dal, paneer ki sabji, naan, rice aur dessert hain. Pizza 249 se, burger 149 se, dal 179 se aur paneer sabji 279 se shuru hoti hai. Table book karun ya dishes pre-order karun?"],
+      [/pizza/, "Pizza mein Margherita 249 rupaye aur Paneer Tikka Pizza 329 rupaye ka hai."],
+      [/burger/, "Burger mein Veg Burger 149 rupaye aur Chicken Burger 199 rupaye ka hai."],
+      [/\bdal\b|makhani|tadka/, "Dal mein Dal Makhani 219 rupaye aur Dal Tadka 179 rupaye ki hai."],
+      [/paneer|sabji|sabzi|kadhai|aloo|gobhi/, "Sabji mein Paneer Butter Masala 289, Kadhai Paneer 279 aur Aloo Gobhi 189 rupaye ki hai."],
+      [/naan|roti|rice|jeera/, "Butter Naan 49 rupaye ka aur Jeera Rice 129 rupaye ka hai."],
+      [/dessert|meetha|gulab|jamun/, "Dessert mein Gulab Jamun 99 rupaye ka hai."],
+      [/veg|jain|vegan/, "Veg, non veg aur Jain options sab available hain."], [/delivery|takeaway|parcel/, "Delivery aur takeaway dono hain."], [/parking|valet/, "Restaurant ke saamne parking hai, weekend par valet bhi milta hai."], [/birthday|anniversary|cake/, "Birthday ya anniversary ke liye hum table decorate kar dete hain."]],
+    chips: ["Aaj raat 8 baje table book karna hai", "Menu mein kya kya milta hai?", "Kal 8 baje 4 logo ka table, 2 paneer butter masala aur 1 pizza bhi", "Kya Jain khana milta hai?", "Delivery hoti hai?"] },
   gen: { biz: "hamari team", noun: "appointment", open: 10, close: 19, closed: [0], svcAsk: "",
     hrs: "Monday se Saturday subah 10 se shaam 7 baje", loc: "hamare office mein", topics: "hamari services aur appointment", price: "Exact details team confirm karegi", services: [], faq: [],
     chips: ["Kal 4 baje appointment book karna hai", "Aap kitne baje tak khule ho?", "Kya main kisi insaan se baat kar sakta hoon?"] },
@@ -127,6 +149,16 @@ const cleanName = (x: string) => {
   return w.slice(0, 2).map((s) => s[0].toUpperCase() + s.slice(1).toLowerCase()).join(" ");
 };
 
+// ---- Restaurant dishes helpers ----
+type Dish3 = [string, number, number];
+const dishTxt = (ds: Dish3[]) => ds.map(([n, q]) => `${q} ${n}`).join(", ");
+const dishTotal = (ds: Dish3[]) => ds.reduce((s, [, q, p]) => s + q * p, 0);
+const menuFind = (d: Dom, t: string): Dish3[] => (d.menu || []).flatMap(([n, r, p]) => {
+  if (!r.test(t)) return [];
+  const q = t.match(new RegExp("(\\d{1,2})\\s*(?:x\\s*|plates?\\s*)?(?:" + r.source + ")"));
+  return [[n, q ? +q[1] : 1, p] as Dish3];
+});
+
 function flow(d: Dom, st: St, pre = ""): [string, St] {
   const o = (x: string, s: St = st): [string, St] => [pre ? `${pre} ${x}` : x, s];
   if (d.services.length && !st.svc) return o(d.svcAsk, { ...st, stage: "svc" });
@@ -148,16 +180,20 @@ function flow(d: Dom, st: St, pre = ""): [string, St] {
     const alt = [...fr].sort((a, b) => Math.abs(a - h) - Math.abs(b - h)).slice(0, 3).sort((a, b) => a - b);
     return o(`${hh(h)} ka slot ${label(st.date)} ko already book hai. Sabse paas ke khaali slot ${lst(alt)} hain. Inmein se kaunsa chahenge?`, { ...st, time: undefined, stage: "time" });
   }
-  const head = ["name", "phone", "confirm"].includes(st.stage || "") ? "" : `Haan, ${label(st.date)} ${hh(h)} ka slot khaali hai. `;
+  const head = ["name", "phone", "confirm", "dish"].includes(st.stage || "") ? "" : `Haan, ${label(st.date)} ${hh(h)} ka slot khaali hai. `;
+  if (d.menu && !st.dishDone) {
+    const ds = st.dishes || [];
+    return o(ds.length ? `Noted: ${dishTxt(ds)}. Aur kuch add karun, ya bas?` : `${head}Chahein to dishes bhi pre-order kar sakte hain, jaise pizza, burger, dal makhani ya paneer ki sabji. Kya order karna hai, ya sirf table chahiye?`, { ...st, stage: "dish" });
+  }
   if (!st.name) return o(`${head}Booking ke liye aapka naam bata dijiye?`, { ...st, stage: "name" });
   if (!st.phone && !st.noPhone) return o(`Shukriya ${st.name}. Confirmation ke liye mobile number bata dijiye. Ye sirf aapki ijazat se save hoga, na dena ho to skip bol dijiye.`, { ...st, stage: "phone" });
-  return o(`Toh main ${st.svc ? st.svc + " ke liye " : ""}${st.name} ji ki ${d.noun} ${label(st.date)} ${hh(h)} par confirm kar rahi hoon${st.phone ? `, number ke aakhri 4 digit ${st.phone.slice(-4)}` : ""}. Sab sahi hai?`, { ...st, stage: "confirm" });
+  return o(`Toh main ${st.svc ? st.svc + " ke liye " : ""}${st.name} ji ki ${d.noun} ${label(st.date)} ${hh(h)} par confirm kar rahi hoon${st.phone ? `, number ke aakhri 4 digit ${st.phone.slice(-4)}` : ""}.${st.dishes?.length ? ` Pre-order: ${dishTxt(st.dishes)}, total ${dishTotal(st.dishes)} rupaye.` : ""} Sab sahi hai?`, { ...st, stage: "confirm" });
 }
 function finalize(d: Dom, st: St): [string, St] {
   if (st.resched) { const i = bookings.findIndex((b) => b.biz === d.biz && b.name === st.name); if (i >= 0) bookings.splice(i, 1); }
-  const b: Booking = { id: `${d.biz.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}${1001 + bookings.length}`, name: st.name!, svc: st.svc || d.noun, date: st.date!, time: st.time!, phone: st.phone, biz: d.biz };
+  const b: Booking = { id: `${d.biz.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}${1001 + bookings.length}`, name: st.name!, svc: st.svc || d.noun, date: st.date!, time: st.time!, phone: st.phone, biz: d.biz, dishes: st.dishes?.length ? dishTxt(st.dishes) : undefined };
   bookings.push(b);
-  return [`Ho gaya! ${b.name} ji, ${st.svc ? st.svc + " ki " : ""}${d.noun} ${label(b.date)} ${hh(b.time)} ke liye pakki ho gayi. Booking ID ${b.id}. ${b.phone ? "Confirmation message bhej diya jayega." : "Chahein to baad mein number bhi de sakte hain."} Aur kuch madad chahiye?`, {}];
+  return [`Ho gaya! ${b.name} ji, ${st.svc ? st.svc + " ki " : ""}${d.noun} ${label(b.date)} ${hh(b.time)} ke liye pakki ho gayi. Booking ID ${b.id}.${st.dishes?.length ? ` Pre-order: ${dishTxt(st.dishes)}, total ${dishTotal(st.dishes)} rupaye.` : ""} ${b.phone ? "Confirmation message bhej diya jayega." : "Chahein to baad mein number bhi de sakte hain."} Aur kuch madad chahiye?`, {}];
 }
 function side(d: Dom, t: string): string {
   const svc = d.services.find(([, r]) => r.test(t));
@@ -210,15 +246,17 @@ export function reply(ctx: string, text: string, s0: St): [string, St] {
 
   if (st.intent === "book" || start) {
     st.intent = "book";
-    const prev = JSON.stringify([st.svc, st.date, st.time, st.name, st.phone, st.noPhone]);
+    const prev = JSON.stringify([st.svc, st.date, st.time, st.name, st.phone, st.noPhone, st.dishes, st.dishDone]);
     if (svcM) st.svc = svcM[0];
     if (!st.date && st.offer && yes && !no) { st.date = st.offer; st.offer = undefined; }
     if (dt) { st.date = dt; st.offer = undefined; }
     if (tm.h != null) st.time = tm.h; else if (tm.p) st.pref = tm.p;
+    if (d.menu && !noDate) for (const f of menuFind(d, t)) { const i = (st.dishes || []).findIndex((x) => x[0] === f[0]); st.dishes = i >= 0 ? st.dishes!.map((x, j) => (j === i ? f : x)) : [...(st.dishes || []), f]; }
+    if (st.stage === "dish" && T(/\b(nahi|nahin|no|nope|bas|skip|nothing|na|itna hi)\b|that'?s all|sirf table|only table/)) st.dishDone = true;
     if (st.stage === "name" && !st.name && !dt && tm.h == null) { const n = cleanName(text); if (n) st.name = n; }
     if (!st.phone && dg.length >= 10) st.phone = dg.slice(-10);
     if (st.stage === "phone" && !st.phone && T(/\b(skip|nahi|no|nope|mat|na)\b|don'?t/)) st.noPhone = true;
-    const now = JSON.stringify([st.svc, st.date, st.time, st.name, st.phone, st.noPhone]);
+    const now = JSON.stringify([st.svc, st.date, st.time, st.name, st.phone, st.noPhone, st.dishes, st.dishDone]);
     if (now !== prev || (start && !side(d, t))) return flow(d, st);
     const a = side(d, t);
     return flow(d, st, a || (st.stage === "phone" && dg.length > 0 ? "Number 10 digit ka hona chahiye." : st.stage === "phone" && T(/kyun|why|\?/) ? "Ye sirf confirmation message ke liye hai, aur aapki ijazat ke bina save nahi hoga." : `Main sirf ${d.topics} mein madad kar sakti hoon.`));

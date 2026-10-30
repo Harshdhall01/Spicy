@@ -4,7 +4,7 @@ import { useState } from "react";
 import DemoCall from "./DemoCall";
 import Orb from "./Orb";
 
-type Line = { role: "agent" | "you"; text: string };
+type Line = { role: "agent" | "you"; text: string; cut?: boolean };
 
 function PreviewInner({ agentId, demo }: { agentId: string; demo: boolean }) {
   const [lines, setLines] = useState<Line[]>([]);
@@ -14,6 +14,14 @@ function PreviewInner({ agentId, demo }: { agentId: string; demo: boolean }) {
     micMuted: muted,
     onMessage: (m: { source: string; message: string }) =>
       setLines((l) => [...l, { role: m.source === "ai" ? "agent" : "you", text: m.message }]),
+    // Barge-in: user beech me bola, agent ki audio ruk gayi. Last agent line ko "cut" mark karo.
+    onInterruption: () =>
+      setLines((l) => {
+        for (let i = l.length - 1; i >= 0; i--) {
+          if (l[i].role === "agent") return l.map((x, j) => (j === i ? { ...x, cut: true } : x));
+        }
+        return l;
+      }),
     onError: (e: unknown) => setErr(typeof e === "string" ? e : "Connection problem. Try again."),
   } as never);
   const live = conv.status === "connected";
@@ -21,7 +29,11 @@ function PreviewInner({ agentId, demo }: { agentId: string; demo: boolean }) {
   async function start() {
     setErr("");
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Echo cancel ON, taaki agent ki apni awaaz mic me aakar usse khud interrupt na kare
+      const s = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      s.getTracks().forEach((t) => t.stop());
     } catch { return setErr("Microphone blocked. Allow mic access in your browser and retry."); }
     const r = await fetch(`/api/signed-url?agentId=${agentId}`);
     const j = await r.json();
@@ -35,11 +47,14 @@ function PreviewInner({ agentId, demo }: { agentId: string; demo: boolean }) {
       <div className="flex flex-col items-center gap-3">
         <Orb compact live={live} speaking={conv.isSpeaking} muted={muted} disabled={demo}
           onToggle={live ? () => conv.endSession() : start} onMute={() => setMuted(!muted)} />
+        {live && <p className="text-xs text-neutral-500">Agent bol raha ho to beech me bol sakte ho, wo ruk jayega. Laptop speaker pe echo ho to earphones lagao.</p>}
         {err && <p role="alert" className="max-w-xs text-center text-sm">{err}</p>}
       </div>
       <div className="mono h-64 w-full max-w-md shrink-0 overflow-y-auto rounded-2xl border border-neutral-200 p-4 text-xs leading-relaxed">
         {lines.length === 0 && <span className="text-neutral-400">The transcript appears here.</span>}
-        {lines.map((l, i) => <p key={i}><b>{l.role === "agent" ? "Agent" : "You"}:</b> {l.text}</p>)}
+        {lines.map((l, i) => (
+          <p key={i}><b>{l.role === "agent" ? "Agent" : "You"}:</b> {l.text}{l.cut && <span className="text-neutral-400"> [interrupted]</span>}</p>
+        ))}
       </div>
     </div>
   );
