@@ -2,6 +2,7 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useState } from "react";
 import DemoCall from "./DemoCall";
+import Orb from "./Orb";
 
 type Line = { role: "agent" | "you"; text: string };
 
@@ -29,28 +30,14 @@ function PreviewInner({ agentId, demo }: { agentId: string; demo: boolean }) {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-between gap-6 p-6">
+    <div className="flex min-h-full flex-col items-center gap-5 p-6">
       {demo && <p className="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-500">Demo mode: live calls are off</p>}
-      <div className="flex flex-col items-center gap-5">
-        <button onClick={live ? () => conv.endSession() : start} disabled={demo}
-          aria-label={live ? "End call" : "Talk to your agent"}
-          className="relative grid h-40 w-40 place-items-center rounded-full border border-neutral-200 transition disabled:opacity-40">
-          <span className="absolute inset-0 rounded-full bg-neutral-100 transition-transform duration-300"
-            style={{ transform: live ? `scale(${conv.isSpeaking ? 1.12 : 0.92})` : "scale(0.8)" }} />
-          <span className="relative flex h-10 items-end gap-1" aria-hidden>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <i key={i} className="w-1.5 rounded-full bg-black transition-all duration-200"
-                style={{ height: live && conv.isSpeaking ? 12 + ((i * 17) % 28) : 6 }} />
-            ))}
-          </span>
-        </button>
-        <p className="text-sm text-neutral-500">
-          {live ? (conv.isSpeaking ? "Agent is speaking" : "Listening") : "Tap to talk to your agent"}
-        </p>
-        {live && <button onClick={() => setMuted(!muted)} className="rounded-xl border border-neutral-200 px-4 py-1.5 text-sm">{muted ? "Unmute" : "Mute"}</button>}
+      <div className="flex flex-col items-center gap-3">
+        <Orb compact live={live} speaking={conv.isSpeaking} muted={muted} disabled={demo}
+          onToggle={live ? () => conv.endSession() : start} onMute={() => setMuted(!muted)} />
         {err && <p role="alert" className="max-w-xs text-center text-sm">{err}</p>}
       </div>
-      <div className="mono h-48 w-full max-w-md overflow-y-auto rounded-2xl border border-neutral-200 p-4 text-xs leading-relaxed">
+      <div className="mono h-64 w-full max-w-md shrink-0 overflow-y-auto rounded-2xl border border-neutral-200 p-4 text-xs leading-relaxed">
         {lines.length === 0 && <span className="text-neutral-400">The transcript appears here.</span>}
         {lines.map((l, i) => <p key={i}><b>{l.role === "agent" ? "Agent" : "You"}:</b> {l.text}</p>)}
       </div>

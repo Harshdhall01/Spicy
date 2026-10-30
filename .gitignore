@@ -7,3 +7,5 @@ out
 test.mp3
 body.json
 next-env.d.ts
+
+tsconfig.tsbuildinfo

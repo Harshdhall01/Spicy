@@ -1,7 +1,8 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { reply } from "@/lib/brain";
-type Call = { id: number; when: string; day: number; dur: string; who: string; sentiment: "Positive" | "Neutral" | "Negative"; score: number; intent: string; phone: string; slot: string; summary: string; lines: [string, string][] };
+import { getLiveCalls, onLiveCalls, clearLiveCalls, type LiveCall } from "@/lib/ownerInbox";
+type Call = { id: number; live?: boolean; when: string; day: number; dur: string; who: string; sentiment: "Positive" | "Neutral" | "Negative"; score: number; intent: string; phone: string; slot: string; summary: string; lines: [string, string][] };
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const NAMES = ["Neha Verma", "Rahul Mehta", "Simran Kaur", "Aman Gupta", "Pooja Sharma", "Vikram Singh", "Anjali Rao", "Karan Malhotra", "Sneha Iyer", "Imran Khan", "Divya Nair", "Rohit Jain", "Meena Joshi", "Arjun Patel", "Kavita Reddy"];
 const INTENTS: [string, number, string, string][] = [
@@ -31,18 +32,34 @@ function make(): Call[] {
     };
   });
 }
+function toCall(c: LiveCall): Call {
+  const d = new Date(c.startedAt);
+  const day = (d.getDay() + 6) % 7;
+  const isToday = d.toDateString() === new Date().toDateString();
+  return {
+    id: c.id, live: true, day, who: c.who, intent: c.intent, sentiment: c.sentiment, score: c.score,
+    when: `${isToday ? "Today" : DAYS[day]}, ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`,
+    dur: `${Math.floor(c.durSec / 60)}:${String(c.durSec % 60).padStart(2, "0")}`,
+    phone: "Not captured", slot: c.slot, summary: c.summary, lines: c.lines,
+  };
+}
 export default function Insights({ demo }: { demo: boolean }) {
-  const all = useMemo(make, []);
+  const sample = useMemo(make, []);
+  const [liveRaw, setLiveRaw] = useState<LiveCall[]>([]);
+  useEffect(() => { const load = () => setLiveRaw(getLiveCalls()); load(); return onLiveCalls(load); }, []);
+  const liveCalls = useMemo(() => liveRaw.map(toCall), [liveRaw]);
+  const all = useMemo(() => [...liveCalls, ...sample], [liveCalls, sample]);
   const [f, setF] = useState("All");
   const [hot, setHot] = useState(false);
   const rows = all.filter((c) => (f === "All" || c.sentiment === f) && (!hot || c.score >= 75));
-  const [sel, setSel] = useState<Call>(all[0]);
-  const perDay = DAYS.map((_, d) => all.filter((c) => c.day === d).length), max = Math.max(...perDay);
+  const [selId, setSelId] = useState<number | null>(null);
+  const sel = all.find((c) => c.id === selId) ?? all[0];
+  const perDay = DAYS.map((_, d) => all.filter((c) => c.day === d).length), max = Math.max(...perDay, 1);
   const pct = (s: string) => Math.round((all.filter((c) => c.sentiment === s).length / all.length) * 100);
   const stat = "rounded-2xl border border-neutral-200 p-4";
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-6 text-sm">
-      {demo && <p className="rounded-xl bg-neutral-100 p-3 text-xs text-neutral-600">Sample data. Real calls will appear here once your ElevenLabs key is added.</p>}
+      {demo && <p className="rounded-xl bg-neutral-100 p-3 text-xs text-neutral-600">Sample data. Real calls will appear here once your ElevenLabs key is added. Calls you make in the Preview tab show up at the top as LIVE.</p>}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className={stat}><p className="text-xs text-neutral-500">Calls this week</p><p className="text-2xl font-semibold">{all.length}</p></div>
         <div className={stat}><p className="text-xs text-neutral-500">Appointments</p><p className="text-2xl font-semibold">{all.filter((c) => c.intent === "Book appointment").length}</p></div>
@@ -58,14 +75,15 @@ export default function Insights({ demo }: { demo: boolean }) {
       <div className="flex flex-wrap items-center gap-2">
         {["All", "Positive", "Neutral", "Negative"].map((s) => <button key={s} onClick={() => setF(s)} aria-pressed={f === s} className={`rounded-full border px-3 py-1 text-xs ${f === s ? "border-black bg-black text-white" : "border-neutral-200"}`}>{s}</button>)}
         <button onClick={() => setHot(!hot)} aria-pressed={hot} className={`rounded-full border px-3 py-1 text-xs ${hot ? "border-black bg-black text-white" : "border-neutral-200"}`}>Hot leads only</button>
+        {liveCalls.length > 0 && <button onClick={clearLiveCalls} className="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-500 hover:bg-neutral-100">Clear live ({liveCalls.length})</button>}
         <span className="ml-auto text-xs text-neutral-500">{rows.length} calls</span>
       </div>
       <div className="grid gap-4 md:grid-cols-[320px_1fr]">
         <ul className="max-h-96 divide-y divide-neutral-200 overflow-y-auto rounded-2xl border border-neutral-200">
           {rows.length === 0 && <li className="p-4 text-neutral-400">No calls match this filter.</li>}
           {rows.map((c) => (
-            <li key={c.id}><button onClick={() => setSel(c)} aria-current={sel.id === c.id} className={`w-full px-4 py-3 text-left ${sel.id === c.id ? "bg-neutral-100" : "hover:bg-neutral-50"}`}>
-              <span className="flex justify-between"><span className="font-medium">{c.who}</span><span className="text-xs">{c.score}</span></span>
+            <li key={c.id}><button onClick={() => setSelId(c.id)} aria-current={sel.id === c.id} className={`w-full px-4 py-3 text-left ${sel.id === c.id ? "bg-neutral-100" : "hover:bg-neutral-50"}`}>
+              <span className="flex justify-between"><span className="font-medium">{c.who}{c.live && <span className="ml-2 rounded-full bg-black px-1.5 py-0.5 text-[10px] font-semibold text-white">LIVE</span>}</span><span className="text-xs">{c.score}</span></span>
               <span className="text-xs text-neutral-500">{c.when} · {c.intent}</span></button></li>
           ))}
         </ul>
@@ -74,7 +92,7 @@ export default function Insights({ demo }: { demo: boolean }) {
           <dl className="grid grid-cols-2 gap-3 text-xs">
             {[["Name", sel.who], ["Phone", sel.phone], ["Intent", sel.intent], ["Appointment", sel.slot], ["Duration", sel.dur], ["Lead score", `${sel.score} / 100`]].map(([k, v]) => <div key={k}><dt className="text-neutral-500">{k}</dt><dd className="mt-0.5 text-sm">{v}</dd></div>)}
           </dl>
-          <div className="mono space-y-1.5 rounded-xl bg-neutral-100 p-3 text-xs">{sel.lines.map(([w, t], i) => <p key={i}><b>{w}:</b> {t}</p>)}</div>
+          <div className="mono max-h-72 space-y-1.5 overflow-y-auto rounded-xl bg-neutral-100 p-3 text-xs">{sel.lines.map(([w, t], i) => <p key={i}><b>{w}:</b> {t}</p>)}</div>
         </div>
       </div>
     </div>
